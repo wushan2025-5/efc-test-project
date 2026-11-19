@@ -1,0 +1,16 @@
+{
+  "name": "backend-real-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/gen-filler.mjs 9.2",
+    "build:200m": "node scripts/gen-filler.mjs 199.2",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@node-rs/xxhash": "^1.7.8",
+    "express": "^5.3.0",
+    "ws": "^8.23.0"
+  }
+}

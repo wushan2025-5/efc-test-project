@@ -1,0 +1,9 @@
+{
+  "name": "backend-real",
+
+  "installCommand": "npm install --no-audit --no-fund"
+
+  // 不写 buildCommand：体积档位由控制台「构建命令」决定，esa.jsonc 写了会覆盖控制台
+  //   npm run build       → 填充 9.2MB，fc/code.zip ≈ 10MB
+  //   npm run build:200m  → 填充 199.2MB，fc/code.zip ≈ 200MB
+}
