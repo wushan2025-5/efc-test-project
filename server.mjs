@@ -28,7 +28,7 @@ app.get('/', (req, res) => {
       'GET /__probe/sse?n=5',
       'GET /__probe/big?mb=5',
       'POST /__probe/upload',
-      'GET /__probe/whoami',
+      'GET /__probe/whoami/update',
       'WS /__probe/ws'
     ]
   });
