@@ -1,53 +1,38 @@
-// Backend-real：Express 5 + ws + 原生模块，探针挂在 /__probe 下。
-// 端口取 PORT，云构建的 start.mjs 会拦截 listen 改用自己的端口，所以监听完成用 'listening' 事件记录。
 import express from 'express';
-import { WebSocketServer } from 'ws';
-import { INSTANCE_ID, boot } from './lib/state.mjs';
-import probe from './routes/probe.mjs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-app.use((req, res, next) => {
-  if (boot.firstRequestAt === null) {
-    boot.firstRequestAt = Date.now();
-  }
-  res.set('x-probe-instance', INSTANCE_ID);
-  next();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, framework: 'express', flavor: 'listen', service: '留言板', message: '服务运行中' });
 });
 
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Backend-real',
-    instance: INSTANCE_ID,
-    probes: [
-      'GET /__probe/boot',
-      'GET /__probe/filler?verify=1',
-      'GET /__probe/native',
-      'GET /__probe/child',
-      'GET /__probe/log?size=40000',
-      'GET /__probe/sse?n=5',
-      'GET /__probe/big?mb=5',
-      'POST /__probe/upload',
-      'GET /__probe/whoami',
-      'WS /__probe/ws'
-    ]
-  });
+app.get('/api/users/:id', asyncHandler(async (req, res) => {
+  const profile = await Promise.resolve({ name: `访客#${req.params.id}`, avatar: `/avatars/${req.params.id}.png` });
+  res.json({ user: req.params.id, source: 'express', ...profile });
+}));
+
+app.post('/api/echo', asyncHandler(async (req, res) => {
+  res.json({ received: req.body, echoed: true, timestamp: new Date().toISOString() });
+}));
+
+app.get('/api/error-demo', asyncHandler(async () => {
+  throw new Error('演示错误：Express 全局错误中间件已捕获');
+}));
+
+app.use((err, req, res, next) => {
+  console.error('[error-handler]', err.message);
+  res.status(500).json({ error: 'internal', message: err.message });
 });
 
-app.use('/__probe', probe);
-
-const server = app.listen(Number(process.env.PORT) || 3000);
-server.on('listening', () => {
-  boot.listeningAt = Date.now();
-  const address = server.address();
-  console.log(`[backend-real] listening on ${typeof address === 'object' && address ? address.port : address}`);
-});
-
-// WebSocket：连接后先发 hello，之后原样回显
-const wss = new WebSocketServer({ server, path: '/__probe/ws' });
-wss.on('connection', (socket) => {
-  socket.send(JSON.stringify({ type: 'hello', instance: INSTANCE_ID }));
-  socket.on('message', (data, isBinary) => {
-    socket.send(data, { binary: isBinary });
-  });
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`listening on port ${port}`);
 });
